@@ -169,13 +169,13 @@ def getNextMove_NewellSimon(boardPassed):
 
 	boardCopy=deepcopy(boardPassed)
 
-	print('0', boardCopy, playerFirst)
+	#print('0', boardCopy, playerFirst)
 	# 0 play the center if comp has the first move
 	if(compFirstMove and not(playerFirst) and boardSize%2!=0 and boardCopy[boardSize//2][boardSize//2]==' '):
 		compFirstMove=not compFirstMove
 		return((boardSize//2)*boardSize+(boardSize//2))
 
-	print('1', boardCopy)
+	#print('1', boardCopy)
 	# 1 check if the computer can win by row, column or diagonal
 	for row in range(boardSize):
 		for col in range(boardSize):
@@ -187,7 +187,7 @@ def getNextMove_NewellSimon(boardPassed):
 
 				if(winCheckResult[0]=='Win' and winCheckResult[2]==compChoice): return(row*boardSize+col)
 
-	print('2', boardCopy)
+	#print('2', boardCopy)
 	# 2 comp has not won, check if player can win and block that area
 	for row in range(boardSize):
 		for col in range(boardSize):
@@ -199,7 +199,7 @@ def getNextMove_NewellSimon(boardPassed):
 
 				if(winCheckResult[0]=='Win' and winCheckResult[2]==playerChoice): return(row*boardSize+col)
 
-	print('3', boardCopy)
+	#print('3', boardCopy)
 	# 3 create a fork for the comp
 	for row in range(boardSize):
 		for col in range(boardSize):
@@ -226,7 +226,7 @@ def getNextMove_NewellSimon(boardPassed):
 
 				boardCopy[row][col]=' '
 
-	print('4', boardCopy)
+	#print('4', boardCopy)
 	# 4 block the opponents fork
 	for row in range(boardSize):
 		for col in range(boardSize):
@@ -253,31 +253,31 @@ def getNextMove_NewellSimon(boardPassed):
 
 				boardCopy[row][col]=' '
 
-	print('5', boardCopy)
+	#print('5', boardCopy)
 	# 5 play the center, best for first move of the comp, meaning less for even sized boards
 	if(boardCopy[boardSize//2][boardSize//2]==' ' and boardSize%2!=0): return((boardSize//2)*boardSize+(boardSize//2))
 
-	print('6', boardCopy)
+	#print('6', boardCopy)
 	# 6 opposite corner, check if player is in some corner, play the opposite corner of that
 	if(boardCopy[0][0]==playerChoice and boardCopy[-1][-1]==' '): return((boardSize-1)*boardSize+(boardSize-1))
 	elif(boardCopy[0][-1]==playerChoice and boardCopy[-1][0]==' '): return((boardSize-1)*boardSize)
 	elif(boardCopy[-1][0]==playerChoice and boardCopy[0][-1]==' '): return(boardSize-1)
 	elif(boardCopy[-1][-1]==playerChoice and boardCopy[0][0]==' '): return(0)
 
-	print('7', boardCopy)
+	#print('7', boardCopy)
 	# 7 empty corner, check if any corner is empty and make a move there
 	if(boardCopy[0][0]==' '): return(0)
 	elif(boardCopy[0][-1]==' '): return(boardSize-1)
 	elif(boardCopy[-1][0]==' '): return((boardSize-1)*boardSize)
 	elif(boardCopy[-1][-1]==' '): return((boardSize-1)*boardSize+(boardSize-1))
 
-	print('8', boardCopy)
+	#print('8', boardCopy)
 	# 8 empty side.. dont know how this strategy will be modified for boards of size more than 3
 	for i in range(1, boardSize-1):
 		if(boardCopy[0][i]==' '): return(i)	#top row
 		elif(boardCopy[-1][i]==' '): return((boardSize-1)*boardSize+i)	#bottom row
-		elif(boardCopy[i][0]==' '): return(i*boardCopy)	#left column
-		elif(boardCopy[i][boardSize-1]==' '): return(i*boardCopy+(boardSize-1))
+		elif(boardCopy[i][0]==' '): return(i*boardSize)	#left column
+		elif(boardCopy[i][boardSize-1]==' '): return(i*boardSize+(boardSize-1))
 
 
 def getNextMove_MiniMax(boardPassed):
@@ -304,6 +304,11 @@ def getNextMove_MiniMax(boardPassed):
 
 	#print(rewardMatrix)
 	return(maxRow*boardSize+maxCol)
+
+def getNextMove(boardPassed):
+	global useNewellSimon
+	if (useNewellSimon): return(getNextMove_NewellSimon(boardPassed))
+	else: return(getNextMove_MiniMax(boardPassed))
 
 
 def boardConverter(statePassed):
@@ -335,6 +340,7 @@ def boardMain():
 	global boardSize
 	global compFirstMove
 	global playerFirst
+	global useNewellSimon
 
 	if(playerFirst):
 		playerPos=int(input("Enter Position: "))
@@ -346,7 +352,7 @@ def boardMain():
 	while(checkForWin(board)[0]!='Win' and checkForWin(board)[0]!='Draw'):
 		if(not(compFirstMove and not(playerFirst))): printBoard(board)
 		if(compTurn):
-			compPos=getNextMove_NewellSimon(board)
+			compPos=getNextMove(board)
 			board[compPos//boardSize][compPos%boardSize]=compChoice
 			compTurn=not compTurn
 		else:
@@ -371,6 +377,7 @@ def boardMain():
 board=[]
 playerFirst=False
 compFirstMove=True
+useNewellSimon=True
 boardSize=3
 compChoice='O'
 playerChoice='X'
