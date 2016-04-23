@@ -127,9 +127,9 @@ def playAhead(boardPassed, compTurn):
 	winString=checkForWin(boardPassed)
 	boardMoves=checkNoOfMoves(boardPassed)
 	if(winString[0]=='Win' and winString[2]==compChoice):
-		return((boardSize+1-boardMoves[0])*winPoints)
+		return(boardWeight*(boardSize+1-boardMoves[0])*winPoints)
 	elif(winString[0]=='Win' and winString[2]==playerChoice):
-		return((boardSize+1-boardMoves[1])*losePoints)
+		return(boardWeight*(boardSize+1-boardMoves[1])*losePoints)
 	elif(winString[0]=='Draw'):
 		return(drawPoints)
 	else:
@@ -164,7 +164,7 @@ def getNextMove(boardPassed):
 	maxReward=-100001
 	for i in range(boardSize):
 		for j in range(boardSize):
-			if(rewardMatrix[i][j]>maxReward):
+			if(rewardMatrix[i][j]>maxReward and boardPassed[i][j]==' '):
 				maxReward=rewardMatrix[i][j]
 				maxRow=i
 				maxCol=j
@@ -237,9 +237,10 @@ boardSize=3
 compChoice='O'
 playerChoice='X'
 
-winPoints=30
-drawPoints=100
-losePoints=-40
+winPoints=10
+drawPoints=0
+losePoints=-10
+boardWeight=10
 
 rewardDict={}
 
