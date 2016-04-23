@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 def printBoard(boardToPrint):
 	print()
 	global boardSize
@@ -154,13 +152,13 @@ def getNextMove(boardPassed):
 	for row in range(boardSize):
 		for col in range(boardSize):
 			if(boardPassed[row][col]==' '):
-				boardCopy=deepcopy(boardPassed)
-				boardCopy[row][col]=compChoice
+				boardPassed[row][col]=compChoice
 				rewardMatrix[row][col]=playAhead(boardCopy, False)
+				boardPassed[row][col]=' '
 
 	#print(rewardMatrix)
-	maxRow=0
-	maxCol=0
+	maxRow=-1
+	maxCol=-1
 	maxReward=-100001
 	for i in range(boardSize):
 		for j in range(boardSize):
