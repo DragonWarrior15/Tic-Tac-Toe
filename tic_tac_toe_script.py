@@ -153,7 +153,7 @@ def getNextMove(boardPassed):
 		for col in range(boardSize):
 			if(boardPassed[row][col]==' '):
 				boardPassed[row][col]=compChoice
-				rewardMatrix[row][col]=playAhead(boardCopy, False)
+				rewardMatrix[row][col]=playAhead(boardPassed, False)
 				boardPassed[row][col]=' '
 
 	#print(rewardMatrix)
