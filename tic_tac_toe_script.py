@@ -34,11 +34,7 @@ def printBoardPositions():
 def initializeBoard():
 	global boardSize
 	global board
-	for i in range(boardSize):
-		tempList=[]
-		for j in range(boardSize):
-			tempList.append(' ')
-		board.append(tempList)
+	board=[[' ']*boardSize for i in range(boardSize)]
 
 def checkBoardEmpty(boardPassed):
 	global boardSize
@@ -147,7 +143,7 @@ def playAhead(boardPassed, compTurn):
 
 def getNextMove(boardPassed):
 	global boardSize
-	rewardMatrix=[[-100000]*boardSize]*boardSize
+	rewardMatrix=[[-100000]*boardSize for i in range(boardSize)]
 	
 	for row in range(boardSize):
 		for col in range(boardSize):
@@ -172,7 +168,7 @@ def getNextMove(boardPassed):
 
 def boardConverter(statePassed):
 	boardSize=int(len(statePassed)**0.5)
-	returnBoard=[[' ']*boardSize]*boardSize
+	returnBoard=[[' ']*boardSize for i in range(boardSize)]
 
 	for i in range(len(statePassed)):
 		if(statePassed[i]==1):
@@ -231,14 +227,14 @@ def boardMain():
 #define global variables here
 board=[]
 playerFirst=False
-boardSize=3
+boardSize=4
 compChoice='O'
 playerChoice='X'
 
 winPoints=10
-drawPoints=0
+drawPoints=5
 losePoints=-10
-boardWeight=10
+boardWeight=1
 
 rewardDict={}
 
