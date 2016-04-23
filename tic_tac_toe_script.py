@@ -149,12 +149,8 @@ def playAhead(boardPassed, compTurn):
 
 def getNextMove(boardPassed):
 	global boardSize
-	rewardMatrix=[]
-	for i in range(boardSize):
-		tempList=[]
-		for j in range(boardSize):
-			tempList.append(-100000)
-		rewardMatrix.append(tempList)
+	rewardMatrix=[[-100000]*boardSize]*boardSize
+	
 	for row in range(boardSize):
 		for col in range(boardSize):
 			if(boardPassed[row][col]==' '):
@@ -177,13 +173,8 @@ def getNextMove(boardPassed):
 	return(maxRow*boardSize+maxCol)
 
 def boardConverter(statePassed):
-	returnBoard=[]
 	boardSize=int(len(statePassed)**0.5)
-	for i in range(boardSize):
-		tempList=[]
-		for j in range(boardSize):
-			tempList.append(' ')
-		returnBoard.append(tempList)
+	returnBoard=[[' ']*boardSize]*boardSize
 
 	for i in range(len(statePassed)):
 		if(statePassed[i]==1):
