@@ -134,18 +134,20 @@ def boardToKey(boardPassed, compTurn):
 	return(returnStr)
 
 def playAhead(boardPassed, compTurn):
+	#uses the minimax algorithm
 	global boardSize
 	global rewardDict
 	winString=checkForWin(boardPassed)
 	boardMoves=checkNoOfMoves(boardPassed)
 	if(winString[0]=='Win' and winString[2]==compChoice):
-		return(boardWeight*(boardSize+1-boardMoves[0])*winPoints)
+		return(winPoints-boardMoves[0])
 	elif(winString[0]=='Win' and winString[2]==playerChoice):
-		return(boardWeight*(boardSize+1-boardMoves[1])*losePoints)
+		return(boardMoves[1]-losePoints)
 	elif(winString[0]=='Draw'):
 		return(drawPoints)
 	else:
 		reward=0
+		rewardMatrix=[[0]*boardSize for i in range(boardSize)]
 		for row in range(boardSize):
 			for col in range(boardSize):
 				if(boardPassed[row][col]==' '):
@@ -154,10 +156,50 @@ def playAhead(boardPassed, compTurn):
 					rewardDictKey=boardToKey(boardPassed, not compTurn)
 					if(not rewardDictKey in rewardDict):
 						rewardDict[rewardDictKey]=playAhead(boardPassed, not compTurn)
-					reward+=rewardDict[rewardDictKey]
+					#reward+=rewardDict[rewardDictKey]
+					rewardMatrix[row][col]=rewardDict[rewardDictKey]
 					boardPassed[row][col]=' '
 		
+		reward=-100001 if(compTurn) else 100001
+		for row in range(boardSize):
+			for col in range(boardSize):
+				if(compTurn):
+					if(rewardMatrix[row][col]>reward and boardPassed[row][col]==' '):
+						reward=rewardMatrix[row][col]
+				else:
+					if(rewardMatrix[row][col]<reward and boardPassed[row][col]==' '):
+						reward=rewardMatrix[row][col]
+
 		return(reward)
+
+def forkPosition(boardPassed, moveChoice):
+	boardCopy=deepcopy(boardPassed)
+	for row in range(boardSize):
+		for col in range(boardSize):
+			if(boardCopy[row][col]==' '):
+				boardCopy[row][col]=moveChoice
+
+				winTypeList=[0, 0, 0]
+
+				for i in range(boardSize):
+					for j in range(boardSize):
+						if(boardCopy[i][j]==' '):
+							boardCopy[i][j]=moveChoice
+							winCheckResult=['', '', '']
+							winCheckResult=checkForWin(boardCopy)
+							if(winCheckResult[0]=='Win' and winCheckResult[0]==moveChoice):
+								if(winCheckResult[1]=='Row'): winTypeList[0]+=1
+								elif(winCheckResult[1]=='Col'): winTypeList[1]+=1
+								elif(winCheckResult[2]=='Diag'): winTypeList[2]+=1
+
+							if((winTypeList[0]>=1 and winTypeList[1]>=1) or (winTypeList[1]>=1 and winTypeList[2]>=1) or (winTypeList[0]>=1 and winTypeList[2]>=1)):
+								return(row*boardSize+col)
+							
+							boardCopy[i][j]=' '
+
+				boardCopy[row][col]=' '
+
+	return(-1)
 
 def getNextMove_NewellSimon(boardPassed):
 
@@ -201,57 +243,13 @@ def getNextMove_NewellSimon(boardPassed):
 
 	#print('3', boardCopy)
 	# 3 create a fork for the comp
-	for row in range(boardSize):
-		for col in range(boardSize):
-			if(boardCopy[row][col]==' '):
-				boardCopy[row][col]=compChoice
-
-				winTypeList=[0, 0, 0]
-
-				for i in range(boardSize):
-					for j in range(boardSize):
-						if(boardCopy[i][j]==' '):
-							boardCopy[i][j]=compChoice
-							winCheckResult=['', '', '']
-							winCheckResult=checkForWin(boardCopy)
-							if(winCheckResult[0]=='Win' and winCheckResult[0]==compChoice):
-								if(winCheckResult[1]=='Row'): winTypeList[0]+=1
-								elif(winCheckResult[1]=='Col'): winTypeList[1]+=1
-								elif(winCheckResult[2]=='Diag'): winTypeList[2]+=1
-
-							if((winTypeList[0]>=1 and winTypeList[1]>=1) or (winTypeList[1]>=1 and winTypeList[2]>=1) or (winTypeList[0]>=1 and winTypeList[2]>=1)):
-								return(row*boardSize+col)
-							
-							boardCopy[i][j]=' '
-
-				boardCopy[row][col]=' '
+	forkResult=forkPosition(boardCopy, compChoice)
+	if(forkResult!=-1): return(forkResult)
 
 	#print('4', boardCopy)
 	# 4 block the opponents fork
-	for row in range(boardSize):
-		for col in range(boardSize):
-			if(boardCopy[row][col]==' '):
-				boardCopy[row][col]=playerChoice
-
-				winTypeList=[0, 0, 0]
-
-				for i in range(boardSize):
-					for j in range(boardSize):
-						if(boardCopy[i][j]==' '):
-							boardCopy[i][j]=playerChoice
-							winCheckResult=['', '', '']
-							winCheckResult=checkForWin(boardCopy)
-							if(winCheckResult[0]=='Win' and winCheckResult[0]==playerChoice):
-								if(winCheckResult[1]=='Row'): winTypeList[0]+=1
-								elif(winCheckResult[1]=='Col'): winTypeList[1]+=1
-								elif(winCheckResult[2]=='Diag'): winTypeList[2]+=1
-
-							if((winTypeList[0]>=1 and winTypeList[1]>=1) or (winTypeList[1]>=1 and winTypeList[2]>=1) or (winTypeList[0]>=1 and winTypeList[2]>=1)):
-								return(row*boardSize+col)
-							
-							boardCopy[i][j]=' '
-
-				boardCopy[row][col]=' '
+	forkResult=forkPosition(boardCopy, playerChoice)
+	if(forkResult!=-1): return(forkResult)
 
 	#print('5', boardCopy)
 	# 5 play the center, best for first move of the comp, meaning less for even sized boards
@@ -278,6 +276,12 @@ def getNextMove_NewellSimon(boardPassed):
 		elif(boardCopy[-1][i]==' '): return((boardSize-1)*boardSize+i)	#bottom row
 		elif(boardCopy[i][0]==' '): return(i*boardSize)	#left column
 		elif(boardCopy[i][boardSize-1]==' '): return(i*boardSize+(boardSize-1))
+
+	# 9 return any empty cell
+	for row in range(boardSize):
+		for col in range(boardSize):
+			if(boardCopy[row][col]==' '):
+				return(row*boardSize+col)
 
 
 def getNextMove_MiniMax(boardPassed):
@@ -326,6 +330,13 @@ def boardConverter(statePassed):
 	return(returnBoard)
 
 def boardMain():
+
+	global board
+	global boardSize
+	global compFirstMove
+	global playerFirst
+	global useNewellSimon
+
 	initializeBoard()
 	printBoardPositions()
 	#python input not supported in sublime text console
@@ -335,12 +346,6 @@ def boardMain():
 	else:
 		compChoice='O' if playerChoice=='X' else 'X'
 		playerFirst=True if playerChoice=='X' else False
-
-	global board
-	global boardSize
-	global compFirstMove
-	global playerFirst
-	global useNewellSimon
 
 	if(playerFirst):
 		playerPos=int(input("Enter Position: "))
@@ -374,7 +379,6 @@ def boardMain():
 			print("You Win!, Nice Game!")
 
 #define global variables here
-board=[]
 playerFirst=False
 compFirstMove=True
 useNewellSimon=True
@@ -382,21 +386,28 @@ boardSize=3
 compChoice='O'
 playerChoice='X'
 
-winPoints=10
-drawPoints=5
-losePoints=-10
+winPoints=5
+drawPoints=0
+losePoints=5
 boardWeight=1
 
 rewardDict={}
 
 #main code begins here
-if(boardSize>10):
-	print("Both of us don't have time to play such a big game!")
-else:
-	wantToPlay='Y'
-	while(wantToPlay=='Y'):
-		board=[]
-		boardMain()
-		wantToPlay=input('Play again? Y for yes : ')
+if __name__=='__main__':
+	if(boardSize>10):
+		print("Both of us don't have time to play such a big game!, Let's Play 5x5!")
+		boardSize=5
+	elif(boardSize<3):
+		boardSize=3
+	elif(boardSize%2==0):
+		#we will prefer an odd sized board as it is better playable
+		boardSize-=1
+	else:
+		wantToPlay='Y'
+		while(wantToPlay=='Y'):
+			board=[]
+			boardMain()
+			wantToPlay=input('Play again? Y for yes : ')
 
 #printBoard(boardToPrint)
