@@ -15,6 +15,7 @@ Empty corner: The player plays in a corner square.
 Empty side: The player plays in a middle square on any of the 4 sides.
 '''
 from copy import deepcopy
+import random
 
 def printBoard(boardToPrint):
 	print()
@@ -28,6 +29,7 @@ def printBoard(boardToPrint):
 	print()
 
 def checkValidPosition(boardPassed, num):
+	global boardSize
 	if(boardPassed[num//boardSize][num%boardSize]!=' '):
 		return(False)
 	else:
@@ -50,8 +52,7 @@ def printBoardPositions():
 	printBoard(boardPositions)
 
 def initializeBoard():
-	global boardSize
-	global board
+	global boardSize, board
 	board=[[' ']*boardSize for i in range(boardSize)]
 
 def checkBoardEmpty(boardPassed):
@@ -63,8 +64,7 @@ def checkBoardEmpty(boardPassed):
 	return(False)
 
 def checkNoOfMoves(boardPassed):
-	global compChoice
-	global playerChoice
+	global compChoice, playerChoice, boardSize
 	returnValueComp=0
 	returnValuePlayer=0
 	for i in range(boardSize):
@@ -135,8 +135,7 @@ def boardToKey(boardPassed, compTurn):
 
 def playAhead(boardPassed, compTurn):
 	#uses the minimax algorithm
-	global boardSize
-	global rewardDict
+	global boardSize, rewardDict, compChoice, playerChoice
 	winString=checkForWin(boardPassed)
 	boardMoves=checkNoOfMoves(boardPassed)
 	if(winString[0]=='Win' and winString[2]==compChoice):
@@ -147,7 +146,7 @@ def playAhead(boardPassed, compTurn):
 		return(drawPoints)
 	else:
 		reward=0
-		rewardMatrix=[[0]*boardSize for i in range(boardSize)]
+		rewardMatrix=[[-100000 if(compTurn) else 100000]*boardSize for i in range(boardSize)]
 		for row in range(boardSize):
 			for col in range(boardSize):
 				if(boardPassed[row][col]==' '):
@@ -158,6 +157,7 @@ def playAhead(boardPassed, compTurn):
 						rewardDict[rewardDictKey]=playAhead(boardPassed, not compTurn)
 					#reward+=rewardDict[rewardDictKey]
 					rewardMatrix[row][col]=rewardDict[rewardDictKey]
+					#rewardMatrix[row][col]=playAhead(boardPassed, not compTurn)
 					boardPassed[row][col]=' '
 		
 		reward=-100001 if(compTurn) else 100001
@@ -169,10 +169,36 @@ def playAhead(boardPassed, compTurn):
 				else:
 					if(rewardMatrix[row][col]<reward and boardPassed[row][col]==' '):
 						reward=rewardMatrix[row][col]
-
+						#if(checkNoOfMoves(boardPassed)==[1,0]): print(rewardMatrix, boardPassed, compChoice)
 		return(reward)
 
+def getNextMove_MiniMax(boardPassed):
+	global boardSize, compChoice, playerChoice
+	rewardMatrix=[[-100000]*boardSize for i in range(boardSize)]
+	
+	for row in range(boardSize):
+		for col in range(boardSize):
+			if(boardPassed[row][col]==' '):
+				boardPassed[row][col]=compChoice
+				rewardMatrix[row][col]=playAhead(boardPassed, False)
+				boardPassed[row][col]=' '
+
+	#print(rewardMatrix)
+	maxRow=-1
+	maxCol=-1
+	maxReward=-100001
+	for i in range(boardSize):
+		for j in range(boardSize):
+			if(rewardMatrix[i][j]>maxReward and boardPassed[i][j]==' '):
+				maxReward=rewardMatrix[i][j]
+				maxRow=i
+				maxCol=j
+
+	#print(rewardMatrix)
+	return(maxRow*boardSize+maxCol)
+
 def forkPosition(boardPassed, moveChoice):
+	global boardSize
 	boardCopy=deepcopy(boardPassed)
 	for row in range(boardSize):
 		for col in range(boardSize):
@@ -187,7 +213,7 @@ def forkPosition(boardPassed, moveChoice):
 							boardCopy[i][j]=moveChoice
 							winCheckResult=['', '', '']
 							winCheckResult=checkForWin(boardCopy)
-							if(winCheckResult[0]=='Win' and winCheckResult[0]==moveChoice):
+							if(winCheckResult[0]=='Win' and winCheckResult[2]==moveChoice):
 								if(winCheckResult[1]=='Row'): winTypeList[0]+=1
 								elif(winCheckResult[1]=='Col'): winTypeList[1]+=1
 								elif(winCheckResult[2]=='Diag'): winTypeList[2]+=1
@@ -203,15 +229,30 @@ def forkPosition(boardPassed, moveChoice):
 
 def getNextMove_NewellSimon(boardPassed):
 
-	global boardSize
-	global compChoice
-	global playerChoice
-	global compFirstMove
-	global playerFirst
+	global boardSize, compChoice, playerChoice, compFirstMove, playerFirst, firstTimeXCorner, moveNo
 
 	boardCopy=deepcopy(boardPassed)
 
-	#print('0', boardCopy, playerFirst)
+	#print('-2', boardCopy)
+	#-2 if comp gets to play first, play a corner as its the best move
+	if(moveNo==0):
+		return(0)
+
+	#print('-1', boardCopy)
+	#-1 If X plays a corner and O has played the center, O should play a side middle then
+	if(checkNoOfMoves(boardPassed)==[1,2]):
+		XCorner=0
+		if((boardPassed[0][-1]==playerChoice and boardPassed[-1][0]==playerChoice) or (boardPassed[0][0]==playerChoice and boardPassed[-1][-1]==playerChoice)):
+			if(boardCopy[boardSize//2][boardSize%2]==compChoice):
+				#empty side.. dont know how this strategy will be modified for boards of size more than 3
+				for i in range(1, boardSize-1):
+					if(boardCopy[0][i]==' '): return(i)	#top row
+					elif(boardCopy[-1][i]==' '): return((boardSize-1)*boardSize+i)	#bottom row
+					elif(boardCopy[i][0]==' '): return(i*boardSize)	#left column
+					elif(boardCopy[i][boardSize-1]==' '): return(i*boardSize+(boardSize-1))	
+
+	
+	#print('0', boardCopy)
 	# 0 play the center if comp has the first move
 	if(compFirstMove and not(playerFirst) and boardSize%2!=0 and boardCopy[boardSize//2][boardSize//2]==' '):
 		compFirstMove=not compFirstMove
@@ -252,7 +293,7 @@ def getNextMove_NewellSimon(boardPassed):
 	if(forkResult!=-1): return(forkResult)
 
 	#print('5', boardCopy)
-	# 5 play the center, best for first move of the comp, meaning less for even sized boards
+	# 5 play the center, meaningless for even sized boards
 	if(boardCopy[boardSize//2][boardSize//2]==' ' and boardSize%2!=0): return((boardSize//2)*boardSize+(boardSize//2))
 
 	#print('6', boardCopy)
@@ -277,42 +318,123 @@ def getNextMove_NewellSimon(boardPassed):
 		elif(boardCopy[i][0]==' '): return(i*boardSize)	#left column
 		elif(boardCopy[i][boardSize-1]==' '): return(i*boardSize+(boardSize-1))
 
+	#print('9', boardCopy)
 	# 9 return any empty cell
 	for row in range(boardSize):
 		for col in range(boardSize):
 			if(boardCopy[row][col]==' '):
 				return(row*boardSize+col)
 
+def qLearning():
+	global gamesToPlay, learningRate, boardStateDict, playerChoice, compChoice, moveNo, boardSize
+	#initialize game boards
+	boardStateDict={}
+	explorationRate=1	#switch exploration rate to 0 after switchE% of the games
+	learningRate=0.8
+	gamesToPlay=10000
+	switchE=0.6
 
-def getNextMove_MiniMax(boardPassed):
-	global boardSize
-	rewardMatrix=[[-100000]*boardSize for i in range(boardSize)]
-	
-	for row in range(boardSize):
-		for col in range(boardSize):
-			if(boardPassed[row][col]==' '):
-				boardPassed[row][col]=compChoice
-				rewardMatrix[row][col]=playAhead(boardPassed, False)
-				boardPassed[row][col]=' '
+	winReward=1
+	loseReward=-1
+	drawReward=0
 
-	#print(rewardMatrix)
-	maxRow=-1
-	maxCol=-1
-	maxReward=-100001
-	for i in range(boardSize):
-		for j in range(boardSize):
-			if(rewardMatrix[i][j]>maxReward and boardPassed[i][j]==' '):
-				maxReward=rewardMatrix[i][j]
-				maxRow=i
-				maxCol=j
+	noOfGamesWon=0
+	noOfGamesDrew=0
+	noOfGamesLost=0
 
-	#print(rewardMatrix)
-	return(maxRow*boardSize+maxCol)
+	for noOfGames in range(gamesToPlay):
+		moveNo=0
+		if(noOfGames!=0 and noOfGames%1000==0):
+			print(str(noOfGames)+' Won:'+str(noOfGamesWon)+' Lost:'+str(noOfGamesLost)+' Drew:'+str(noOfGamesDrew))
+			noOfGamesWon=0
+			noOfGamesDrew=0
+			noOfGamesLost=0
+
+		if(noOfGames>switchE*gamesToPlay): exploration=0
+
+		turnFirst=random.randint(0,1)
+		#turnFirst decides who plays first, here the comp is a good player and the player is the learner
+		playerChoice='X' if(turnFirst==1) else 'O'
+		compChoice='X' if(turnFirst==0) else 'O'
+		board=[[' ']*boardSize for i in range(boardSize)]
+		
+		if(turnFirst==0):
+			boardPos=getNextMove_NewellSimon(board)
+			board[boardPos//boardSize][boardPos%boardSize]=compChoice
+			moveNo+=1
+		playerTurn=False
+
+		while(checkForWin(board)[0]=='Play'):
+			playerTurn=not playerTurn
+			if(not playerTurn):
+				boardPos=getNextMove_MiniMax(board)
+				board[boardPos//boardSize][boardPos%boardSize]=compChoice
+				moveNo+=1
+			else:
+				boardKey=boardToKey(board, playerChoice)
+				if(not boardKey in boardStateDict):
+					boardStateDict[boardKey]=[0]*(boardSize*boardSize)
+				boardActionList=boardStateDict[boardKey]
+				boardMaxReward=[i for i in range(len(boardActionList)) if(board[i//boardSize][i%boardSize]==' ')]
+				if(explorationRate==0):
+					boardMaxReward=[i for i in boardMaxReward if(boardStateDict[boardKey][i]==max([boardStateDict[boardKey][i] for i in boardMaxReward]))]
+					if(len(boardMaxReward)>1): boardPos=boardMaxReward[random.randint(0, len(boardMaxReward)-1)]
+					else: boardPos=boardMaxReward[0]
+				else:
+					if(len(boardMaxReward)>1): boardPos=boardMaxReward[random.randint(0, len(boardMaxReward)-1)]
+					else: boardPos=boardMaxReward[0]
+				
+				board[boardPos//boardSize][boardPos%boardSize]=playerChoice
+				moveNo+=1
+
+			winCheckResult=checkForWin(board)
+
+			if(winCheckResult[0]=='Win' and winCheckResult[2]==playerChoice): 
+				reward=1
+				noOfGamesWon+=1
+				if(noOfGamesWon%50==0):
+					print(playerChoice, board)
+			elif(winCheckResult[0]=='Win' and winCheckResult[2]==compChoice):
+				reward=-1
+				noOfGamesLost+=1
+			elif(winCheckResult[0]=='Draw'): 
+				reward=0
+				noOfGamesDrew+=1
+			else:
+				reward=0
+
+			newBoardKey=boardToKey(board, playerChoice)
+			if(not newBoardKey in boardStateDict):
+				boardStateDict[newBoardKey]=[0]*(boardSize*boardSize)
+			oldBoardKey=boardKey
+			if(playerTurn):
+				boardStateDict[oldBoardKey][boardPos]+=learningRate*(reward+(max(boardStateDict[newBoardKey])-boardStateDict[oldBoardKey][boardPos]))
+				#print(boardStateDict[oldBoardKey])
+
+			if(winCheckResult[0]=='Win' or winCheckResult[0]=='Draw'):
+				boardStateDict[newBoardKey][boardPos]+=reward
+
+	#print(boardStateDict)
+
+
+def getNextMove_qLearning(boardPassed):
+	global boardStateDict, boardSize
+	boardKey=boardToKey(boardPassed, compChoice)
+	if(not boardKey in boardStateDict):
+		boardStateDict[boardKey]=[0]*(boardSize*boardSize)
+	returnList=[i for i in range(0, len(boardStateDict[boardKey])) if(boardPassed[i//boardSize][i%boardSize]==' ')]
+	returnList=[i for i in returnList if(boardStateDict[boardKey][i]==(max([boardStateDict[boardKey][i] for i in returnList])))]
+	if(len(returnList)==1):
+		return(returnList[0])
+	else:
+		return(returnList[random.randint(0,len(returnList)-1)])
+		
 
 def getNextMove(boardPassed):
-	global useNewellSimon
-	if (useNewellSimon): return(getNextMove_NewellSimon(boardPassed))
-	else: return(getNextMove_MiniMax(boardPassed))
+	global algoNumber
+	if(algoNumber==0): return(getNextMove_MiniMax(boardPassed))
+	elif(algoNumber==1): return(getNextMove_NewellSimon(boardPassed))
+	else: return(getNextMove_qLearning(boardPassed))
 
 
 def boardConverter(statePassed):
@@ -331,41 +453,45 @@ def boardConverter(statePassed):
 
 def boardMain():
 
-	global board
-	global boardSize
-	global compFirstMove
-	global playerFirst
-	global useNewellSimon
+	global board, boardSize, compFirstMove, playerFirst, moveNo, compChoice, playerChoice
+
+	moveNo=0
+	compChoice='O'
+	playerChoice='X'
 
 	initializeBoard()
 	printBoardPositions()
 	#python input not supported in sublime text console
 	playerChoice=input("Choose X or O, X plays first: ")
-	if(playerChoice!='X' and playerChoice!='O'):
-		print("Bad Player!, restart.") 
-	else:
-		compChoice='O' if playerChoice=='X' else 'X'
-		playerFirst=True if playerChoice=='X' else False
+	while(playerChoice!='X' and playerChoice!='O'):
+		print("Bad Player!, Select Again.")
+		playerChoice=input("Choose X or O, X plays first: ")
+	
+	compChoice='O' if playerChoice=='X' else 'X'
+	playerFirst=True if playerChoice=='X' else False
 
 	if(playerFirst):
 		playerPos=int(input("Enter Position: "))
 		while(not checkValidPosition(board, playerPos)):
 			playerPos=int(input("Wrong Position, Enter New Position: "))
 		board[playerPos//boardSize][playerPos%boardSize]=playerChoice
+		moveNo+=1
 
 	compTurn=True
-	while(checkForWin(board)[0]!='Win' and checkForWin(board)[0]!='Draw'):
+	while(checkForWin(board)[0]=='Play'):
 		if(not(compFirstMove and not(playerFirst))): printBoard(board)
 		if(compTurn):
 			compPos=getNextMove(board)
 			board[compPos//boardSize][compPos%boardSize]=compChoice
 			compTurn=not compTurn
+			moveNo+=1
 		else:
 			playerPos=int(input("Enter Position: "))
 			while(not checkValidPosition(board, playerPos)):
 				playerPos=int(input("Wrong Position, Enter New Position: "))
 			board[playerPos//boardSize][playerPos%boardSize]=playerChoice
 			compTurn=not compTurn
+			moveNo+=1
 
 		compFirstMove=False
 
@@ -381,20 +507,25 @@ def boardMain():
 #define global variables here
 playerFirst=False
 compFirstMove=True
-useNewellSimon=True
+algoNumber=2 #0 for minimax, 1 for newell-simon, 2 for qlearning
 boardSize=3
 compChoice='O'
 playerChoice='X'
 
-winPoints=5
+winPoints=10
 drawPoints=0
-losePoints=5
+losePoints=10
 boardWeight=1
 
 rewardDict={}
 
+moveNo=0
+
 #main code begins here
 if __name__=='__main__':
+	if(algoNumber==2):
+		qLearning()	#run this to make the program learn the game
+
 	if(boardSize>10):
 		print("Both of us don't have time to play such a big game!, Let's Play 5x5!")
 		boardSize=5
@@ -408,6 +539,6 @@ if __name__=='__main__':
 		while(wantToPlay=='Y'):
 			board=[]
 			boardMain()
-			wantToPlay=input('Play again? Y for yes : ')
+			wantToPlay=input('Play again? Y for yes : ').upper()
 
 #printBoard(boardToPrint)
